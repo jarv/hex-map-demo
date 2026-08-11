@@ -1,0 +1,20 @@
+{
+  "name": "hex-map-demo",
+  "description": "Hex map fog-of-war demo using Phaser 3",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild/dev.server.js",
+    "build": "node esbuild/build.dev.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "@jgoz/esbuild-plugin-livereload": "^2.1.4",
+    "esbuild": "^0.25.12",
+    "esbuild-plugin-copy": "^2.1.1",
+    "esbuild-serve": "^1.0.1"
+  }
+}
