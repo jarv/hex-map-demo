@@ -9,7 +9,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^4.2.1"
   },
   "devDependencies": {
     "@jgoz/esbuild-plugin-livereload": "^2.1.4",

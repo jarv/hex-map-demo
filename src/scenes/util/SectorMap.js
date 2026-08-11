@@ -163,6 +163,10 @@ export class SectorMap {
       }
       this.isDragging = false;
     });
+
+    this.scene.input.on("wheel", (pointer, _over, _dx, dy) => {
+      this.zoom(dy < 0 ? 0.02 : -0.02);
+    });
   }
 
   pos() {

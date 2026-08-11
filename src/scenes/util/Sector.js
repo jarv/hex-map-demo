@@ -54,10 +54,15 @@ export class Sector {
 
   setSeen() {
     this.visibility = SectorVisibility.Seen;
-    this.sprite.setAlpha(0.5);
+    this.sprite.setAlpha(0.65);
   }
 
   setVisited() {
+    this.visibility = SectorVisibility.Visited;
+    this.sprite.setAlpha(0.8);
+  }
+
+  setOccupied() {
     this.visibility = SectorVisibility.Visited;
     this.sprite.setAlpha(1.0);
   }

@@ -1,0 +1,11 @@
+[tools]
+nodejs = "26.2.0"
+
+[tasks.build]
+run = "node esbuild/build.dev.js"
+
+[tasks.dev]
+run = "node esbuild/dev.server.js"
+
+[tasks.lint]
+run = "npx prettier src --write"

@@ -20,9 +20,9 @@ const ctx = await context({
 
 await ctx.watch();
 
-const { host, port } = await ctx.serve({
+const { port } = await ctx.serve({
   servedir: "./dist",
   port: 8080,
 });
 
-console.log(`Dev server running at http://${host}:${port}`);
+console.log(`Dev server running at http://localhost:${port}`);

@@ -22,6 +22,7 @@ export class Loading extends Phaser.Scene {
     this.load.image(IMG.hexTilePath, "assets/hexmap-64px-white.png");
     this.load.image(IMG.hexTileEdge, "assets/hexmap-64px-black.png");
     this.load.image(IMG.escapePodBlue, "assets/escape-pod-blue-64px.png");
+    this.load.json("sectormap", "sectormap.json");
   }
 
   create() {
