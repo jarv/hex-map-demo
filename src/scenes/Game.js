@@ -5,8 +5,6 @@ import { CubeCoord } from "./util/CubeCoord";
 import { Sector, SectorType, SectorVisibility } from "./util/Sector";
 import { SectorMap } from "./util/SectorMap";
 
-
-
 const CENTER_TWEEN_MS = 150;
 const ZOOM_STEP = 0.15;
 
@@ -19,23 +17,21 @@ export class Game extends Phaser.Scene {
     this._occupiedSector = null;
   }
 
-  create() {
+  create(data) {
     this.cameras.main.setBackgroundColor(COLORS.background);
-
-    const mapData = this.cache.json.get("sectormap");
-    this._mapData = mapData;
-    this._start = mapData.start;
 
     this.mapContainer = this.add.container(0, 0);
 
     this.sectorMap = new SectorMap(this, 10, 8, this.mapContainer);
 
-    this._buildMap();
-
-    this._playerCC = new CubeCoord(this._start.q, this._start.r);
+    this._loadMap(data.mapData);
 
     const startPos = this._playerCC.getCoordPosition();
-    this._playerSprite = this.add.sprite(startPos.x, startPos.y, IMG.escapePodBlue);
+    this._playerSprite = this.add.sprite(
+      startPos.x,
+      startPos.y,
+      IMG.escapePodBlue,
+    );
     this._playerSprite.setScale(0.85);
     this.mapContainer.add(this._playerSprite);
 
@@ -51,13 +47,15 @@ export class Game extends Phaser.Scene {
     this._setupKeyboard();
   }
 
-  _buildMap() {
-    for (const sd of this._mapData.sectors) {
+  _loadMap(mapData) {
+    this._start = mapData.start;
+    for (const sd of mapData.sectors) {
       const cc = new CubeCoord(sd.q, sd.r);
       const sectorType = sd.t === 0 ? SectorType.Path : SectorType.Edge;
       const sector = new Sector(this, cc, sectorType);
       this.sectorMap.addSector(sector);
     }
+    this._playerCC = new CubeCoord(this._start.q, this._start.r);
   }
 
   _snapCenterOnPlayer() {
@@ -83,12 +81,17 @@ export class Game extends Phaser.Scene {
       y: targetY,
       duration: CENTER_TWEEN_MS,
       ease: "Quad.easeOut",
-      onComplete: () => { this._centerTween = null; },
+      onComplete: () => {
+        this._centerTween = null;
+      },
     });
   }
 
   _revealAround(cc) {
-    if (this._occupiedSector && this._occupiedSector !== this.sectorMap.sectors.get(cc.key)) {
+    if (
+      this._occupiedSector &&
+      this._occupiedSector !== this.sectorMap.sectors.get(cc.key)
+    ) {
       this._occupiedSector.setVisited();
     }
 
@@ -133,8 +136,13 @@ export class Game extends Phaser.Scene {
     const nextCC = this._travelQueue.shift().cc;
     const fromCC = this._playerCC;
 
-    const targetAngle = Phaser.Math.Angle.WrapDegrees(fromCC.getDirection(nextCC));
-    const angleDiff = Phaser.Math.Angle.ShortestBetween(this._playerSprite.angle, targetAngle);
+    const targetAngle = Phaser.Math.Angle.WrapDegrees(
+      fromCC.getDirection(nextCC),
+    );
+    const angleDiff = Phaser.Math.Angle.ShortestBetween(
+      this._playerSprite.angle,
+      targetAngle,
+    );
     const newTargetAngle = this._playerSprite.angle + angleDiff;
 
     const nextPos = nextCC.getCoordPosition();
@@ -175,15 +183,15 @@ export class Game extends Phaser.Scene {
   }
 
   _setupKeyboard() {
-    const kUp    = this.input.keyboard.addKey("UP");
-    const kDown  = this.input.keyboard.addKey("DOWN");
-    const kLeft  = this.input.keyboard.addKey("LEFT");
+    const kUp = this.input.keyboard.addKey("UP");
+    const kDown = this.input.keyboard.addKey("DOWN");
+    const kLeft = this.input.keyboard.addKey("LEFT");
     const kRight = this.input.keyboard.addKey("RIGHT");
-    const kW     = this.input.keyboard.addKey("W");
-    const kS     = this.input.keyboard.addKey("S");
-    const kA     = this.input.keyboard.addKey("A");
-    const kD     = this.input.keyboard.addKey("D");
-    const kPlus  = this.input.keyboard.addKey("PLUS");
+    const kW = this.input.keyboard.addKey("W");
+    const kS = this.input.keyboard.addKey("S");
+    const kA = this.input.keyboard.addKey("A");
+    const kD = this.input.keyboard.addKey("D");
+    const kPlus = this.input.keyboard.addKey("PLUS");
     const kMinus = this.input.keyboard.addKey("MINUS");
     const kEqual = this.input.keyboard.addKey("EQUAL");
 
@@ -198,14 +206,16 @@ export class Game extends Phaser.Scene {
 
       const isNorth = kUp.isDown || kW.isDown;
       const isSouth = kDown.isDown || kS.isDown;
-      const isEast  = kRight.isDown || kD.isDown;
-      const isWest  = kLeft.isDown || kA.isDown;
+      const isEast = kRight.isDown || kD.isDown;
+      const isWest = kLeft.isDown || kA.isDown;
 
       if (isNorth && isSouth) return;
       if (isEast && isWest) return;
 
       const canMove = (dq, dr) =>
-        this.sectorMap.sectors.has(`${this._playerCC.q + dq},${this._playerCC.r + dr}`);
+        this.sectorMap.sectors.has(
+          `${this._playerCC.q + dq},${this._playerCC.r + dr}`,
+        );
 
       const go = (dq, dr) => {
         if (dq > 0 || (dq === 0 && dr === 1)) lastHorizontalDir = "east";
@@ -213,22 +223,42 @@ export class Game extends Phaser.Scene {
         this._tryMoveByDelta(dq, dr);
       };
 
-      if (isNorth && isEast) { if (canMove(1, -1)) go(1, -1); return; }
-      if (isNorth && isWest) { if (canMove(0, -1)) go(0, -1); return; }
-      if (isSouth && isEast) { if (canMove(0, 1))  go(0, 1);  return; }
-      if (isSouth && isWest) { if (canMove(-1, 1)) go(-1, 1); return; }
+      if (isNorth && isEast) {
+        if (canMove(1, -1)) go(1, -1);
+        return;
+      }
+      if (isNorth && isWest) {
+        if (canMove(0, -1)) go(0, -1);
+        return;
+      }
+      if (isSouth && isEast) {
+        if (canMove(0, 1)) go(0, 1);
+        return;
+      }
+      if (isSouth && isWest) {
+        if (canMove(-1, 1)) go(-1, 1);
+        return;
+      }
 
       if (isEast) {
-        if (canMove(1, 0))       { go(1, 0);  return; }
-        const ne = canMove(1, -1), se = canMove(0, 1);
+        if (canMove(1, 0)) {
+          go(1, 0);
+          return;
+        }
+        const ne = canMove(1, -1),
+          se = canMove(0, 1);
         if (ne && !se) go(1, -1);
         else if (se && !ne) go(0, 1);
         return;
       }
 
       if (isWest) {
-        if (canMove(-1, 0))      { go(-1, 0); return; }
-        const nw = canMove(0, -1), sw = canMove(-1, 1);
+        if (canMove(-1, 0)) {
+          go(-1, 0);
+          return;
+        }
+        const nw = canMove(0, -1),
+          sw = canMove(-1, 1);
         if (nw && !sw) go(0, -1);
         else if (sw && !nw) go(-1, 1);
         return;
@@ -257,56 +287,44 @@ export class Game extends Phaser.Scene {
 
     this.input.keyboard.on("keydown", (e) => {
       switch (e.code) {
-        case "ArrowUp": case "KeyW":
-        case "ArrowDown": case "KeyS":
-        case "ArrowLeft": case "KeyA":
-        case "ArrowRight": case "KeyD":
+        case "ArrowUp":
+        case "KeyW":
+        case "ArrowDown":
+        case "KeyS":
+        case "ArrowLeft":
+        case "KeyA":
+        case "ArrowRight":
+        case "KeyD":
           handleMove();
           break;
-        case "Equal": case "NumpadAdd":
+        case "Equal":
+        case "NumpadAdd":
           this.sectorMap.zoom(ZOOM_STEP);
           this._snapCenterOnPlayer();
           break;
-        case "Minus": case "NumpadSubtract":
+        case "Minus":
+        case "NumpadSubtract":
           this.sectorMap.zoom(-ZOOM_STEP);
           this._snapCenterOnPlayer();
           break;
       }
     });
 
-    void kPlus; void kMinus; void kEqual;
-    void kUp; void kDown; void kLeft; void kRight;
-    void kW; void kS; void kA; void kD;
+    void kPlus;
+    void kMinus;
+    void kEqual;
+    void kUp;
+    void kDown;
+    void kLeft;
+    void kRight;
+    void kW;
+    void kS;
+    void kA;
+    void kD;
   }
 
   _resetMap() {
-    if (this._centerTween) {
-      this._centerTween.stop();
-      this._centerTween = null;
-    }
-    this._traveling = false;
-    this._travelQueue = [];
-
-    this._occupiedSector = null;
-
-    for (const sector of this.sectorMap.sectors.values()) {
-      sector.setHidden();
-    }
-    for (const sector of this.sectorMap.edgeSectors.values()) {
-      sector.setHidden();
-    }
-
-    this.sectorMap.currentZoom = 1;
-    this.mapContainer.setScale(1);
-
-    this._playerCC = new CubeCoord(this._start.q, this._start.r);
-    const pos = this._playerCC.getCoordPosition();
-    this._playerSprite.x = pos.x;
-    this._playerSprite.y = pos.y;
-    this._playerSprite.setAngle(0);
-
-    this._snapCenterOnPlayer();
-    this._revealAround(this._playerCC);
+    this.scene.start("Generating");
   }
 
   _buildZoomButtons() {

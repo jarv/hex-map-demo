@@ -7,6 +7,8 @@ export class Loading extends Phaser.Scene {
   }
 
   preload() {
+    this.cameras.main.setBackgroundColor(COLORS.background);
+
     this.add
       .text(
         this.cameras.main.width / 2,
@@ -22,10 +24,9 @@ export class Loading extends Phaser.Scene {
     this.load.image(IMG.hexTilePath, "assets/hexmap-64px-white.png");
     this.load.image(IMG.hexTileEdge, "assets/hexmap-64px-black.png");
     this.load.image(IMG.escapePodBlue, "assets/escape-pod-blue-64px.png");
-    this.load.json("sectormap", "sectormap.json");
   }
 
   create() {
-    this.scene.start("Game");
+    this.scene.start("Generating");
   }
 }

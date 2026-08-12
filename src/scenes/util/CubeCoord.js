@@ -99,6 +99,8 @@ export class CubeCoord {
   }
 
   neighbors() {
-    return directions.map((dir) => new CubeCoord(this.q + dir.q, this.r + dir.r));
+    return directions.map(
+      (dir) => new CubeCoord(this.q + dir.q, this.r + dir.r),
+    );
   }
 }

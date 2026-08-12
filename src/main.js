@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Loading } from "./scenes/Loading";
+import { Generating } from "./scenes/Generating";
 import { Game } from "./scenes/Game";
 import { WIDTH, HEIGHT, COLORS } from "./constants.js";
 
@@ -13,7 +14,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [Loading, Game],
+  scene: [Loading, Generating, Game],
 };
 
 window.game = new Phaser.Game(config);
