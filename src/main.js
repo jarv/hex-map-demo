@@ -15,7 +15,7 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   loader: {
-    baseURL: "https://jarv.github.io/hex-map-demo",
+    baseURL: process.env.ASSET_BASE_URL,
   },
   scene: [Loading, Generating, Game],
 };

@@ -10,6 +10,7 @@ const ctx = await context({
   outdir: "./dist",
   define: {
     "process.env.NODE_ENV": JSON.stringify("development"),
+    "process.env.ASSET_BASE_URL": JSON.stringify(""),
   },
   plugins: [
     copy({

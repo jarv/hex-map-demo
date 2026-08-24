@@ -13,6 +13,7 @@ await build({
   outdir: "./dist",
   define: {
     "process.env.NODE_ENV": JSON.stringify("development"),
+    "process.env.ASSET_BASE_URL": JSON.stringify("https://jarv.github.io/hex-map-demo"),
   },
   plugins: [
     copy({
