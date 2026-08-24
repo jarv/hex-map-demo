@@ -16,7 +16,8 @@ export class Loading extends Phaser.Scene {
         "Loading...",
         {
           fontSize: "20px",
-          fill: COLORS.white,
+          color: COLORS.white,
+          fontFamily: "monospace",
         },
       )
       .setOrigin(0.5);

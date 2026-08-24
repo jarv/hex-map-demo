@@ -169,6 +169,9 @@ export class Game extends Phaser.Scene {
         this._revealAround(nextCC);
         this._tweenCenterOnPlayer();
         this._stepTravel();
+        if (this._travelQueue.length === 0 && this._repeatMove) {
+          this._repeatMove();
+        }
       },
     });
   }
@@ -199,6 +202,20 @@ export class Game extends Phaser.Scene {
 
     const COMBO_WINDOW_MS = 50;
     let pendingMove = null;
+
+    const anyMoveKeyDown = () =>
+      kUp.isDown ||
+      kW.isDown ||
+      kDown.isDown ||
+      kS.isDown ||
+      kLeft.isDown ||
+      kA.isDown ||
+      kRight.isDown ||
+      kD.isDown;
+
+    this._repeatMove = () => {
+      if (anyMoveKeyDown()) resolveMove();
+    };
 
     const resolveMove = () => {
       pendingMove = null;
