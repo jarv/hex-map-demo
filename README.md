@@ -1,5 +1,7 @@
 # hex-map-demo
 
+**Live demo: https://jarv.github.io/hex-map-demo/**
+
 A hex map fog-of-war demo built with [Phaser 4](https://phaser.io/). Navigate an escape pod across a procedurally generated hexagonal map where unexplored tiles are hidden by fog of war.
 
 ## Features
