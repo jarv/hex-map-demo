@@ -44,6 +44,7 @@ export class Game extends Phaser.Scene {
 
     this._buildZoomButtons();
     this._buildResetButton();
+    this._buildDebugOverlay();
     this._setupKeyboard();
   }
 
@@ -259,6 +260,7 @@ export class Game extends Phaser.Scene {
       const go = (dq, dr) => {
         lastMoveDelta = [dq, dr];
         this._tryMoveByDelta(dq, dr);
+        this._updateDebugOverlay({ lastHorizontalDir, lastMoveDelta });
       };
 
       if (isOppositeOfLastMove(isNorth, isSouth, isEast, isWest)) {
@@ -393,6 +395,30 @@ export class Game extends Phaser.Scene {
     void kS;
     void kA;
     void kD;
+  }
+
+  _buildDebugOverlay() {
+    const x = 12;
+    const y = HEIGHT - 70;
+    const bg = this.add.rectangle(x, y, 180, 58, 0x000000, 0.6);
+    bg.setOrigin(0, 0);
+    bg.setDepth(200);
+    this._debugText = this.add.text(x + 6, y + 6, "", {
+      fontSize: "11px",
+      color: COLORS.white,
+      fontFamily: "monospace",
+      lineSpacing: 4,
+    });
+    this._debugText.setDepth(201);
+    this._updateDebugOverlay({ lastHorizontalDir: null, lastMoveDelta: null });
+  }
+
+  _updateDebugOverlay({ lastHorizontalDir, lastMoveDelta }) {
+    const delta = lastMoveDelta ? `[${lastMoveDelta}]` : "null";
+    this._debugText.setText([
+      `lastHorizontalDir: ${lastHorizontalDir ?? "null"}`,
+      `lastMoveDelta:     ${delta}`,
+    ]);
   }
 
   _resetMap() {
