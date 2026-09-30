@@ -221,6 +221,7 @@ export class Game extends Phaser.Scene {
     const opposite = (dir) => DIRS.find((d) => d.dq === -dir.dq && d.dr === -dir.dr);
 
     let lastDir = null;
+    let lastKey = null;
 
     const COMBO_WINDOW_MS = 50;
     let pendingMove = null;
@@ -237,6 +238,20 @@ export class Game extends Phaser.Scene {
 
     this._repeatMove = () => {
       if (anyMoveKeyDown()) resolveMove();
+    };
+
+    const isReverseInput = (isNorth, isSouth, isEast, isWest) => {
+      if (!lastDir) return false;
+      const opp = opposite(lastDir);
+      if (isNorth && isEast) return opp === dirByName["NE"];
+      if (isNorth && isWest) return opp === dirByName["NW"];
+      if (isSouth && isEast) return opp === dirByName["SE"];
+      if (isSouth && isWest) return opp === dirByName["SW"];
+      if (isEast && !isNorth && !isSouth) return opp === dirByName["E"];
+      if (isWest && !isNorth && !isSouth) return opp === dirByName["W"];
+      if (isNorth && !isEast && !isWest) return opp.dr === -1;
+      if (isSouth && !isEast && !isWest) return opp.dr === 1;
+      return false;
     };
 
     const resolveMove = () => {
@@ -259,8 +274,13 @@ export class Game extends Phaser.Scene {
       const go = (dir) => {
         lastDir = dir;
         this._tryMoveByDelta(dir.dq, dir.dr);
-        this._updateDebugOverlay({ lastDir });
+        this._updateDebugOverlay({ lastDir, lastKey });
       };
+
+      if (isReverseInput(isNorth, isSouth, isEast, isWest)) {
+        const rev = opposite(lastDir);
+        if (canMove(rev.dq, rev.dr)) { go(rev); return; }
+      }
 
       let intended = null;
       if (isNorth && isEast) intended = dirByName["NE"];
@@ -284,20 +304,24 @@ export class Game extends Phaser.Scene {
 
       if (!intended) return;
 
-      if (lastDir && intended === opposite(lastDir)) {
-        const rev = opposite(lastDir);
-        if (canMove(rev.dq, rev.dr)) { go(rev); return; }
-      }
+      const allowed =
+        (isNorth && isEast) ? new Set(["NE"]) :
+        (isNorth && isWest) ? new Set(["NW"]) :
+        (isSouth && isEast) ? new Set(["SE"]) :
+        (isSouth && isWest) ? new Set(["SW"]) :
+        isNorth  ? new Set(["NE", "NW"]) :
+        isSouth  ? new Set(["SE", "SW"]) :
+        isEast   ? new Set(["NE", "E", "SE"]) :
+                   new Set(["NW", "W", "SW"]);
 
       if (canMove(intended.dq, intended.dr)) { go(intended); return; }
 
-      if (isNorth || isSouth || isEast || isWest) {
-        for (const dir of sortedByAngle(intended)) {
-          if (dir === intended) continue;
-          if (lastDir && dir === opposite(lastDir)) continue;
-          if (canMove(dir.dq, dir.dr)) { go(dir); return; }
-        }
-      }
+      const ref = lastDir ?? intended;
+      const open = DIRS.filter((d) => d !== intended && allowed.has(d.name) && canMove(d.dq, d.dr));
+      if (open.length === 0) return;
+      const minDiff = Math.min(...open.map((d) => angleDiff(ref.angle, d.angle)));
+      const winners = open.filter((d) => angleDiff(ref.angle, d.angle) === minDiff);
+      if (winners.length === 1) { go(winners[0]); return; }
     };
 
     const handleMove = () => {
@@ -309,12 +333,22 @@ export class Game extends Phaser.Scene {
       switch (e.code) {
         case "ArrowUp":
         case "KeyW":
-        case "ArrowDown":
-        case "KeyS":
-        case "ArrowLeft":
-        case "KeyA":
+          lastKey = "↑"; this._updateDebugOverlay({ lastDir, lastKey });
+          handleMove();
+          break;
         case "ArrowRight":
         case "KeyD":
+          lastKey = "→"; this._updateDebugOverlay({ lastDir, lastKey });
+          handleMove();
+          break;
+        case "ArrowDown":
+        case "KeyS":
+          lastKey = "↓"; this._updateDebugOverlay({ lastDir, lastKey });
+          handleMove();
+          break;
+        case "ArrowLeft":
+        case "KeyA":
+          lastKey = "←"; this._updateDebugOverlay({ lastDir, lastKey });
           handleMove();
           break;
         case "Equal":
@@ -346,7 +380,7 @@ export class Game extends Phaser.Scene {
   _buildDebugOverlay() {
     const x = 12;
     const y = HEIGHT - 70;
-    const bg = this.add.rectangle(x, y, 140, 28, 0x000000, 0.6);
+    const bg = this.add.rectangle(x, y, 140, 46, 0x000000, 0.6);
     bg.setOrigin(0, 0);
     bg.setDepth(200);
     this._debugText = this.add.text(x + 6, y + 6, "", {
@@ -356,11 +390,12 @@ export class Game extends Phaser.Scene {
       lineSpacing: 4,
     });
     this._debugText.setDepth(201);
-    this._updateDebugOverlay({ lastDir: null });
+    this._updateDebugOverlay({ lastDir: null, lastKey: null });
   }
 
-  _updateDebugOverlay({ lastDir }) {
+  _updateDebugOverlay({ lastDir, lastKey }) {
     this._debugText.setText([
+      `lastKey: ${lastKey ?? "null"}`,
       `lastDir: ${lastDir ? lastDir.name : "null"}`,
     ]);
   }
