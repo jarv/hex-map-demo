@@ -199,8 +199,28 @@ export class Game extends Phaser.Scene {
     const kMinus = this.input.keyboard.addKey("MINUS");
     const kEqual = this.input.keyboard.addKey("EQUAL");
 
-    let lastHorizontalDir = null;
-    let lastMoveDelta = null;
+    const DIRS = [
+      { name: "E",  dq:  1, dr:  0, angle:   0 },
+      { name: "SE", dq:  0, dr:  1, angle:  60 },
+      { name: "SW", dq: -1, dr:  1, angle: 120 },
+      { name: "W",  dq: -1, dr:  0, angle: 180 },
+      { name: "NW", dq:  0, dr: -1, angle: 240 },
+      { name: "NE", dq:  1, dr: -1, angle: 300 },
+    ];
+
+    const dirByName = Object.fromEntries(DIRS.map((d) => [d.name, d]));
+
+    const angleDiff = (a, b) => {
+      const d = Math.abs(a - b) % 360;
+      return d > 180 ? 360 - d : d;
+    };
+
+    const sortedByAngle = (from) =>
+      [...DIRS].sort((a, b) => angleDiff(from.angle, a.angle) - angleDiff(from.angle, b.angle));
+
+    const opposite = (dir) => DIRS.find((d) => d.dq === -dir.dq && d.dr === -dir.dr);
+
+    let lastDir = null;
 
     const COMBO_WINDOW_MS = 50;
     let pendingMove = null;
@@ -217,27 +237,6 @@ export class Game extends Phaser.Scene {
 
     this._repeatMove = () => {
       if (anyMoveKeyDown()) resolveMove();
-    };
-
-    const isOppositeOfLastMove = (isNorth, isSouth, isEast, isWest) => {
-      if (!lastMoveDelta) return false;
-      const [ldq, ldr] = lastMoveDelta;
-      const rdq = -ldq;
-      const rdr = -ldr;
-
-      const exactCombo =
-        (isNorth && isEast && rdq === 1 && rdr === -1) ||
-        (isNorth && isWest && rdq === 0 && rdr === -1) ||
-        (isSouth && isEast && rdq === 0 && rdr === 1) ||
-        (isSouth && isWest && rdq === -1 && rdr === 1) ||
-        (isEast && !isNorth && !isSouth && rdq === 1 && rdr === 0) ||
-        (isWest && !isNorth && !isSouth && rdq === -1 && rdr === 0);
-      if (exactCombo) return true;
-
-      if (isNorth && !isEast && !isWest && rdr === -1) return true;
-      if (isSouth && !isEast && !isWest && rdr === 1) return true;
-
-      return false;
     };
 
     const resolveMove = () => {
@@ -257,99 +256,46 @@ export class Game extends Phaser.Scene {
           `${this._playerCC.q + dq},${this._playerCC.r + dr}`,
         );
 
-      const go = (dq, dr) => {
-        lastMoveDelta = [dq, dr];
-        this._tryMoveByDelta(dq, dr);
-        this._updateDebugOverlay({ lastHorizontalDir, lastMoveDelta });
+      const go = (dir) => {
+        lastDir = dir;
+        this._tryMoveByDelta(dir.dq, dir.dr);
+        this._updateDebugOverlay({ lastDir });
       };
 
-      if (isOppositeOfLastMove(isNorth, isSouth, isEast, isWest)) {
-        const [rdq, rdr] = [-lastMoveDelta[0], -lastMoveDelta[1]];
-        if (canMove(rdq, rdr)) {
-          lastHorizontalDir =
-            rdq > 0 || (rdq === 0 && rdr === 1) ? "east" : "west";
-          go(rdq, rdr);
-          return;
-        }
+      let intended = null;
+      if (isNorth && isEast) intended = dirByName["NE"];
+      else if (isNorth && isWest) intended = dirByName["NW"];
+      else if (isSouth && isEast) intended = dirByName["SE"];
+      else if (isSouth && isWest) intended = dirByName["SW"];
+      else if (isEast) intended = dirByName["E"];
+      else if (isWest) intended = dirByName["W"];
+      else if (isNorth) {
+        const northDirs = [dirByName["NE"], dirByName["NW"]];
+        intended = lastDir
+          ? northDirs.sort((a, b) => angleDiff(lastDir.angle, a.angle) - angleDiff(lastDir.angle, b.angle))[0]
+          : dirByName["NE"];
+      } else if (isSouth) {
+        const southDirs = [dirByName["SE"], dirByName["SW"]];
+        intended = lastDir
+          ? southDirs.sort((a, b) => angleDiff(lastDir.angle, a.angle) - angleDiff(lastDir.angle, b.angle))[0]
+          : dirByName["SE"];
+      }
+      else return;
+
+      if (!intended) return;
+
+      if (lastDir && intended === opposite(lastDir)) {
+        const rev = opposite(lastDir);
+        if (canMove(rev.dq, rev.dr)) { go(rev); return; }
       }
 
-      if (isNorth && isEast) {
-        if (canMove(1, -1)) go(1, -1);
-        return;
-      }
-      if (isNorth && isWest) {
-        if (canMove(0, -1)) go(0, -1);
-        return;
-      }
-      if (isSouth && isEast) {
-        if (canMove(0, 1)) go(0, 1);
-        return;
-      }
-      if (isSouth && isWest) {
-        if (canMove(-1, 1)) go(-1, 1);
-        return;
-      }
+      if (canMove(intended.dq, intended.dr)) { go(intended); return; }
 
-      if (isEast) {
-        if (canMove(1, 0)) {
-          lastHorizontalDir = "east";
-          go(1, 0);
-          return;
-        }
-        const ne = canMove(1, -1),
-          se = canMove(0, 1);
-        if (ne && !se) {
-          lastHorizontalDir = "east";
-          go(1, -1);
-        } else if (se && !ne) {
-          lastHorizontalDir = "east";
-          go(0, 1);
-        }
-        return;
-      }
-
-      if (isWest) {
-        if (canMove(-1, 0)) {
-          lastHorizontalDir = "west";
-          go(-1, 0);
-          return;
-        }
-        const nw = canMove(0, -1),
-          sw = canMove(-1, 1);
-        if (nw && !sw) {
-          lastHorizontalDir = "west";
-          go(0, -1);
-        } else if (sw && !nw) {
-          lastHorizontalDir = "west";
-          go(-1, 1);
-        }
-        return;
-      }
-
-      if (isNorth) {
-        const pref = lastHorizontalDir === "east" ? [1, -1] : [0, -1];
-        const fall = lastHorizontalDir === "east" ? [0, -1] : [1, -1];
-        if (canMove(...pref)) {
-          lastHorizontalDir = pref[0] === 1 ? "east" : "west";
-          go(...pref);
-        } else if (canMove(...fall)) {
-          lastHorizontalDir = fall[0] === 1 ? "east" : "west";
-          go(...fall);
-        }
-        return;
-      }
-
-      if (isSouth) {
-        const pref = lastHorizontalDir === "east" ? [0, 1] : [-1, 1];
-        const fall = lastHorizontalDir === "east" ? [-1, 1] : [0, 1];
-        if (canMove(...pref)) {
-          lastHorizontalDir =
-            pref[1] === 1 && pref[0] === 0 ? "east" : "west";
-          go(...pref);
-        } else if (canMove(...fall)) {
-          lastHorizontalDir =
-            fall[1] === 1 && fall[0] === 0 ? "east" : "west";
-          go(...fall);
+      if (isNorth || isSouth || isEast || isWest) {
+        for (const dir of sortedByAngle(intended)) {
+          if (dir === intended) continue;
+          if (lastDir && dir === opposite(lastDir)) continue;
+          if (canMove(dir.dq, dir.dr)) { go(dir); return; }
         }
       }
     };
@@ -400,7 +346,7 @@ export class Game extends Phaser.Scene {
   _buildDebugOverlay() {
     const x = 12;
     const y = HEIGHT - 70;
-    const bg = this.add.rectangle(x, y, 180, 58, 0x000000, 0.6);
+    const bg = this.add.rectangle(x, y, 140, 28, 0x000000, 0.6);
     bg.setOrigin(0, 0);
     bg.setDepth(200);
     this._debugText = this.add.text(x + 6, y + 6, "", {
@@ -410,14 +356,12 @@ export class Game extends Phaser.Scene {
       lineSpacing: 4,
     });
     this._debugText.setDepth(201);
-    this._updateDebugOverlay({ lastHorizontalDir: null, lastMoveDelta: null });
+    this._updateDebugOverlay({ lastDir: null });
   }
 
-  _updateDebugOverlay({ lastHorizontalDir, lastMoveDelta }) {
-    const delta = lastMoveDelta ? `[${lastMoveDelta}]` : "null";
+  _updateDebugOverlay({ lastDir }) {
     this._debugText.setText([
-      `lastHorizontalDir: ${lastHorizontalDir ?? "null"}`,
-      `lastMoveDelta:     ${delta}`,
+      `lastDir: ${lastDir ? lastDir.name : "null"}`,
     ]);
   }
 
