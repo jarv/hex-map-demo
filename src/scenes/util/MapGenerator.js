@@ -1,5 +1,5 @@
 const SIZE = 70;
-const RADIUS = 24;
+const RADIUS = 16;
 const DENSITY = 0.7;
 const DEAD_END_PROB = 0.4;
 
