@@ -199,6 +199,7 @@ export class Game extends Phaser.Scene {
     const kEqual = this.input.keyboard.addKey("EQUAL");
 
     let lastHorizontalDir = null;
+    let lastVerticalDir = null;
     let lastMoveDelta = null;
 
     const COMBO_WINDOW_MS = 50;
@@ -266,60 +267,79 @@ export class Game extends Phaser.Scene {
         if (canMove(rdq, rdr)) {
           lastHorizontalDir =
             rdq > 0 || (rdq === 0 && rdr === 1) ? "east" : "west";
+          lastVerticalDir = rdr < 0 ? "north" : rdr > 0 ? "south" : lastVerticalDir;
           go(rdq, rdr);
           return;
         }
       }
 
       if (isNorth && isEast) {
-        if (canMove(1, -1)) go(1, -1);
+        if (canMove(1, -1)) {
+          lastHorizontalDir = "east";
+          lastVerticalDir = "north";
+          go(1, -1);
+        }
         return;
       }
       if (isNorth && isWest) {
-        if (canMove(0, -1)) go(0, -1);
+        if (canMove(0, -1)) {
+          lastHorizontalDir = "west";
+          lastVerticalDir = "north";
+          go(0, -1);
+        }
         return;
       }
       if (isSouth && isEast) {
-        if (canMove(0, 1)) go(0, 1);
+        if (canMove(0, 1)) {
+          lastHorizontalDir = "east";
+          lastVerticalDir = "south";
+          go(0, 1);
+        }
         return;
       }
       if (isSouth && isWest) {
-        if (canMove(-1, 1)) go(-1, 1);
+        if (canMove(-1, 1)) {
+          lastHorizontalDir = "west";
+          lastVerticalDir = "south";
+          go(-1, 1);
+        }
         return;
       }
 
       if (isEast) {
-        if (canMove(1, 0)) {
-          lastHorizontalDir = "east";
-          go(1, 0);
-          return;
-        }
-        const ne = canMove(1, -1),
-          se = canMove(0, 1);
-        if (ne && !se) {
-          lastHorizontalDir = "east";
-          go(1, -1);
-        } else if (se && !ne) {
-          lastHorizontalDir = "east";
-          go(0, 1);
+        const pref =
+          lastVerticalDir === "north" ? [1, -1] :
+          lastVerticalDir === "south" ? [0, 1] :
+          [1, 0];
+        const others = [[1, -1], [0, 1], [1, 0]].filter(
+          ([dq, dr]) => !(dq === pref[0] && dr === pref[1]),
+        );
+        for (const [dq, dr] of [pref, ...others]) {
+          if (canMove(dq, dr)) {
+            lastHorizontalDir = "east";
+            lastVerticalDir = dr < 0 ? "north" : dr > 0 ? "south" : lastVerticalDir;
+            go(dq, dr);
+            break;
+          }
         }
         return;
       }
 
       if (isWest) {
-        if (canMove(-1, 0)) {
-          lastHorizontalDir = "west";
-          go(-1, 0);
-          return;
-        }
-        const nw = canMove(0, -1),
-          sw = canMove(-1, 1);
-        if (nw && !sw) {
-          lastHorizontalDir = "west";
-          go(0, -1);
-        } else if (sw && !nw) {
-          lastHorizontalDir = "west";
-          go(-1, 1);
+        const pref =
+          lastVerticalDir === "north" ? [0, -1] :
+          lastVerticalDir === "south" ? [-1, 1] :
+          [-1, 0];
+        const others = [[0, -1], [-1, 1], [-1, 0]].filter(
+          ([dq, dr]) => !(dq === pref[0] && dr === pref[1]),
+        );
+        for (const [dq, dr] of [pref, ...others]) {
+          if (canMove(dq, dr)) {
+            lastHorizontalDir = "west";
+            lastVerticalDir = dr < 0 ? "north" : dr > 0 ? "south" : lastVerticalDir;
+            go(dq, dr);
+            break;
+          }
         }
         return;
       }
@@ -329,9 +349,11 @@ export class Game extends Phaser.Scene {
         const fall = lastHorizontalDir === "east" ? [0, -1] : [1, -1];
         if (canMove(...pref)) {
           lastHorizontalDir = pref[0] === 1 ? "east" : "west";
+          lastVerticalDir = "north";
           go(...pref);
         } else if (canMove(...fall)) {
           lastHorizontalDir = fall[0] === 1 ? "east" : "west";
+          lastVerticalDir = "north";
           go(...fall);
         }
         return;
@@ -341,12 +363,12 @@ export class Game extends Phaser.Scene {
         const pref = lastHorizontalDir === "east" ? [0, 1] : [-1, 1];
         const fall = lastHorizontalDir === "east" ? [-1, 1] : [0, 1];
         if (canMove(...pref)) {
-          lastHorizontalDir =
-            pref[1] === 1 && pref[0] === 0 ? "east" : "west";
+          lastHorizontalDir = pref[0] === 0 ? "east" : "west";
+          lastVerticalDir = "south";
           go(...pref);
         } else if (canMove(...fall)) {
-          lastHorizontalDir =
-            fall[1] === 1 && fall[0] === 0 ? "east" : "west";
+          lastHorizontalDir = fall[0] === 0 ? "east" : "west";
+          lastVerticalDir = "south";
           go(...fall);
         }
       }
